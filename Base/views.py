@@ -1,23 +1,41 @@
 # views.py
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.forms import UserCreationForm
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-from .models import User, OTP
+from .models import User, OTP, BlogPost
+from .forms import CustomUserCreationForm, LoginForm
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
 
 def home(request):
     return render(request, 'home.html')
 
+def about_us(request):
+    return render(request, 'about_us.html')
+
+def account(request):
+    return render(request, 'account.html')
+
+def blog(request):
+    blog_posts = BlogPost.objects.all()
+    return render(request, 'blog.html', {'blog_posts': blog_posts})
+
+def search(request):
+    # Implement search functionality
+    return render(request, 'search.html')
+
 def register(request):
     if request.method == 'POST':
-        form = UserCreationForm(request.POST)
+        form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            user = form.save()
+            user = form.save(commit=False)
+            user.terms_accepted = 'terms_accepted' in request.POST
+            user.save()
             send_otp(user)
             return redirect('otp_verification')
     else:
-        form = UserCreationForm()
+        form = CustomUserCreationForm()
     return render(request, 'register.html', {'form': form})
 
 def send_otp(user):
@@ -44,16 +62,39 @@ def otp_verification(request):
 
 def user_login(request):
     if request.method == 'POST':
-        email = request.POST.get('email')
-        user = User.objects.filter(email=email).first()
-        if user:
-            send_otp(user)
-            return redirect('otp_verification')
-    return render(request, 'login.html')
+        form = LoginForm(request.POST)
+        if form.is_valid():
+            email = form.cleaned_data['email']
+            password = form.cleaned_data['password']
+            role = form.cleaned_data['role']
+            user = User.objects.filter(email=email, role=role).first()
+            if user and user.check_password(password):
+                send_otp(user)
+                return redirect('otp_verification')
+    else:
+        form = LoginForm()
+    return render(request, 'login.html', {'form': form})
 
 def user_logout(request):
     logout(request)
     return redirect('home')
+
+@csrf_exempt
+def fingerprint_login(request):
+    if request.method == 'POST':
+        # Assuming fingerprint data is sent as JSON
+        fingerprint_data = request.POST.get('fingerprint')
+        email = request.POST.get('email')
+        user = User.objects.filter(email=email).first()
+        if user and authenticate_fingerprint(user, fingerprint_data):
+            login(request, user)
+            return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'failure'})
+
+def authenticate_fingerprint(user, fingerprint_data):
+    # Placeholder function for fingerprint authentication
+    # Implement actual fingerprint authentication logic here
+    return True
 
 
 # Create your views here.

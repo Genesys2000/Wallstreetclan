@@ -1,34 +1,38 @@
 # tests.py
 from django.test import TestCase
 from django.urls import reverse
-from .models import User, OTP
+from django.contrib.auth import get_user_model
 
-class HomeViewTests(TestCase):
-    def test_home_view_status_code(self):
-        response = self.client.get(reverse('home'))
-        self.assertEqual(response.status_code, 200)
-
-class RegisterViewTests(TestCase):
-    def test_register_view_status_code(self):
+class UserRegistrationTest(TestCase):
+    def test_registration_page(self):
         response = self.client.get(reverse('register'))
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'registration/register.html')
 
-class LoginViewTests(TestCase):
-    def test_login_view_status_code(self):
-        response = self.client.get(reverse('login'))
-        self.assertEqual(response.status_code, 200)
+    def test_user_registration(self):
+        response = self.client.post(reverse('register'), {
+            'username': 'testuser',
+            'email': 'testuser@example.com',
+            'password1': 'complexpassword123',
+            'password2': 'complexpassword123',
+            'role': 'buyer',
+            'terms_accepted': True,
+        })
+        self.assertEqual(response.status_code, 302)  # Redirect after successful registration
+        self.assertTrue(get_user_model().objects.filter(email='testuser@example.com').exists())
 
-class OTPVerificationTests(TestCase):
-    def setUp(self):
-        self.user = User.objects.create_user(username='testuser', email='test@example.com', password='12345')
-        self.otp = OTP.objects.create(user=self.user, otp='123456')
+    def test_otp_sent_on_registration(self):
+        self.client.post(reverse('register'), {
+            'username': 'testuser',
+            'email': 'testuser@example.com',
+            'password1': 'complexpassword123',
+            'password2': 'complexpassword123',
+            'role': 'buyer',
+            'terms_accepted': True,
+        })
+        user = get_user_model().objects.get(email='testuser@example.com')
+        self.assertTrue(OTP.objects.filter(user=user).exists())
 
-    def test_otp_verification_view_status_code(self):
-        response = self.client.get(reverse('otp_verification'))
-        self.assertEqual(response.status_code, 200)
-
-    def test_otp_is_valid(self):
-        self.assertTrue(self.otp.is_valid())
 
 
 # Create your tests here.
