@@ -16,7 +16,7 @@ Including another URLconf
 """
 # urls.py
 from django.urls import path
-from Base.views import home, about_us, account, blog, search, register, otp_verification, user_login, user_logout, fingerprint_login
+from Base.views import home, about_us, account, blog, search, register, otp_verification, user_login, user_logout, fingerprint_login, property_list, property_detail, make_offer
 
 urlpatterns = [
     path('', home, name='home'),
@@ -28,6 +28,9 @@ urlpatterns = [
     path('otp_verification/', otp_verification, name='otp_verification'),
     path('login/', user_login, name='login'),
     path('logout/', user_logout, name='logout'),
+    path('properties/', property_list, name='property_list'),
+    path('properties/<int:pk>/', property_detail, name='property_detail'),
+    path('properties/<int:pk>/make_offer/', make_offer, name='make_offer'),
     path('fingerprint_login/', fingerprint_login, name='fingerprint_login'),
 ]
 

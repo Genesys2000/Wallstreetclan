@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
-from .models import User, OTP, BlogPost
+from .models import User, OTP, BlogPost, Property, Offer
 from .forms import CustomUserCreationForm, LoginForm
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -78,6 +78,20 @@ def user_login(request):
 def user_logout(request):
     logout(request)
     return redirect('home')
+
+def property_list(request):
+    properties = Property.objects.all()
+    return render(request, 'property_list.html', {'properties': properties})
+
+def property_detail(request, pk):
+    property = get_object_or_404(Property, pk=pk)
+    return render(request, 'property_detail.html', {'property': property})
+
+def make_offer(request, pk):
+    property = get_object_or_404(Property, pk=pk)
+    if request.method == 'POST':
+        offer_price = request.POST.get('offer_price')
+        Offer.objects.create(property=property, buyer=request.user, offer_price=offer_price)
 
 @csrf_exempt
 def fingerprint_login(request):
